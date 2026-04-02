@@ -73,7 +73,133 @@ game/src/lib.rs  (Game plugin - all game logic)
 
 - **Handles** (not references) are used to access objects in Fyrox's pool-based memory system. Handles are index+generation pairs providing O(1) access.
 
-- Scripts must derive `Visit`, `Reflect`, `Debug`, `Clone`, `Default`, `TypeUuidProvider`, and `ComponentProvider`.
+## Fyrox Script & API Patterns
+
+### Script Definition
+
+Every script requires these derives and attributes:
+
+```rust
+#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "unique-uuid-here")]  // generate a unique UUID per script
+#[visit(optional)]
+struct MyScript {
+    // Editor-visible, prefab-inheritable:
+    some_node: InheritableVariable<Handle<Node>>,
+    speed: InheritableVariable<f32>,
+
+    // Runtime-only (not serialized, hidden from editor):
+    #[reflect(hidden)]
+    #[visit(skip)]
+    is_moving: bool,
+}
+```
+
+Register every script in `Plugin::register` or it won't appear in the editor:
+```rust
+context.serialization_context.script_constructors.add::<MyScript>("My Script");
+```
+
+### Script Lifecycle
+
+```
+on_init → on_start → [on_os_event, on_update, on_message]... → on_deinit
+```
+
+- `on_os_event` — capture input, set flags (no physics here)
+- `on_update` — per-frame logic at stable ~60 Hz (use `ctx.dt` for delta time)
+- `on_start` — runs after all scripts have called `on_init` (subscribe to messages here)
+
+### Scene Graph Access
+
+```rust
+ctx.scene.graph.try_get(handle)?                          // read node
+ctx.scene.graph.try_get_mut(handle)?                      // mutate node
+ctx.scene.graph.try_get_mut_of_type::<RigidBody>(handle)? // typed mutable access
+ctx.scene.graph.try_get_script_of::<MyScript>(handle)?    // access another script
+node.has_script::<Player>()                                // check script type
+ctx.scene.graph.pair_iter()                                // iterate all (handle, node) pairs
+ctx.scene.graph.link_nodes(child, parent)                  // attach child to parent
+ctx.scene.graph.remove_node(handle)                        // remove node + children
+```
+
+Useful node methods: `global_position()`, `look_vector()`, `side_vector()`, `local_transform_mut()`.
+
+### Message Passing (inter-script communication)
+
+```rust
+// 1. Define message
+#[derive(Debug)]
+struct DamageMessage { amount: f32 }
+impl ScriptMessagePayload for DamageMessage {}
+
+// 2. Subscribe in on_start
+ctx.message_dispatcher.subscribe_to::<DamageMessage>(ctx.handle);
+
+// 3. Send from another script
+ctx.message_sender.send_to_target(target_handle, DamageMessage { amount: 10.0 });
+
+// 4. Receive in on_message
+if let Some(msg) = message.downcast_ref::<DamageMessage>() { /* handle */ }
+```
+
+### Physics Patterns
+
+Movement — always preserve Y velocity for gravity:
+```rust
+let y_vel = rigid_body.lin_vel().y;
+rigid_body.set_lin_vel(Vector3::new(vel.x, y_vel, vel.z));
+```
+
+Character rigid bodies: set rotation locked on all axes, disable Can Sleep.
+
+Raycasting:
+```rust
+let mut intersections = Vec::new();
+ctx.scene.graph.physics.cast_ray(
+    RayCastOptions {
+        ray_origin: pos.into(),
+        ray_direction: dir,
+        max_len: 1000.0,
+        groups: Default::default(),
+        sort_results: true,
+    },
+    &mut intersections,
+);
+```
+
+### Prefab Instantiation
+
+```rust
+prefab_resource.instantiate_at(ctx.scene, position, rotation);
+```
+
+### Animation State Machines (ABSM)
+
+Set up states and transitions in the editor, drive from code:
+```rust
+let sm = ctx.scene.graph.try_get_mut(*self.state_machine)?;
+sm.machine_mut()
+    .get_value_mut_silent()
+    .set_parameter("Running", Parameter::Rule(is_moving));
+```
+
+Root motion extraction:
+```rust
+if let Some(root_motion) = sm.machine().pose().root_motion() {
+    let velocity = transform.transform_vector(&root_motion.delta_position).scale(1.0 / ctx.dt);
+}
+```
+
+### Global State via Plugin
+
+```rust
+// Store in Game plugin:
+ctx.plugins.get_mut::<Game>().player = ctx.handle;
+
+// Read from any script:
+let player = ctx.plugins.get::<Game>().player;
+```
 
 ## Conventions
 
