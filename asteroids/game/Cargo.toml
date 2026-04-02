@@ -1,0 +1,13 @@
+
+[package]
+name = "template"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+fyrox = {workspace = true}
+rand = "0.8"
+
+[features]
+default = ["fyrox/default"]
+dylib-engine = ["fyrox/dylib"]

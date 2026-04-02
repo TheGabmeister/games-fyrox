@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:fyrox-book.github.io)",
+      "WebFetch(domain:fyrox.rs)",
+      "WebFetch(domain:github.com)",
+      "Bash(curl -s https://fyrox-book.github.io/beginning/scripting.html)",
+      "WebSearch",
+      "Bash(curl -s https://fyrox-book.github.io/beginning/data_management.html)",
+      "Bash(curl -s https://fyrox-book.github.io/scene/scene.html)",
+      "Bash(curl -s https://fyrox-book.github.io/scene/prefab.html)",
+      "Bash(curl -s https://fyrox-book.github.io/scene/graph.html)",
+      "Bash(curl -s https://fyrox-book.github.io/scripting/script.html)",
+      "Bash(curl -s https://fyrox-book.github.io/scripting/plugin.html)",
+      "Bash(ls -d \"/c/Users/Admin/.cargo/registry/src/index.crates.io-\"*)",
+      "Bash(xargs grep:*)",
+      "Bash(cargo check:*)",
+      "Bash(cargo build:*)",
+      "Bash(timeout 8 cargo run -p executor)"
+    ]
+  }
+}
