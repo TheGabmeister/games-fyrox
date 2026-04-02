@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:fyrox-book.github.io)",
+      "WebFetch(domain:fyrox.rs)",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}

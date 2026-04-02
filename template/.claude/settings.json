@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(../**)",
+      "Edit(../**)",
+      "Write(../**)",
+      "Glob(../**)",
+      "Grep(../**)",
+      "Bash(cd ../**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Edit|Write|Glob|Grep|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '[.tool_input | .. | strings] | join(\" \")' | grep -qi 'AGENTS[.]md' && printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"AGENTS.md is excluded per user preferences\"}}' || true"
+          }
+        ]
+      }
+    ]
+  }
+}
