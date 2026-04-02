@@ -105,7 +105,8 @@ impl Plugin for Game {
     fn init(&mut self, _scene_path: Option<&str>, context: PluginContext) -> GameResult {
         let mut scene = Scene::default();
 
-        // Dark background
+        // Dark background — disable the default skybox so clear_color is used.
+        scene.set_skybox(None);
         scene
             .rendering_options
             .get_value_mut_and_mark_modified()
